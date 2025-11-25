@@ -108,6 +108,11 @@
 
             <!-- Right Side: Actions -->
             <div class="flex items-center gap-2 shrink-0">
+                <!-- More Apps Button (New) -->
+                <button onclick="uiManager.openAppsModal()" class="text-slate-400 hover:text-indigo-500 p-2 transition-colors rounded-lg" title="More Apps">
+                    <i class="ph-bold ph-squares-four text-xl"></i>
+                </button>
+
                 <!-- Maintenance Button -->
                 <button onclick="uiManager.openServiceModal()" class="text-slate-400 hover:text-orange-500 p-2 transition-colors rounded-lg relative" title="Vehicle Maintenance">
                     <i class="ph-bold ph-wrench text-xl"></i>
@@ -604,6 +609,30 @@
         </div>
     </div>
 
+    <!-- Modal Form: More Apps -->
+    <div id="apps-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300" id="apps-modal-content">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800">More from Developer</h3>
+                <button onclick="uiManager.closeAppsModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <a href="https://mastercoder346.github.io/Fair-Share/" target="_blank" class="block w-full">
+                    <button class="w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium py-3 rounded-xl transition-colors">
+                        <i class="ph-bold ph-users-three text-xl"></i> Fair Share
+                    </button>
+                </a>
+                <a href="https://mastercoder346.github.io/homeinventory/" target="_blank" class="block w-full">
+                    <button class="w-full flex items-center justify-center gap-2 bg-teal-50 text-teal-600 hover:bg-teal-100 font-medium py-3 rounded-xl transition-colors">
+                        <i class="ph-bold ph-house-line text-xl"></i> Home Inventory
+                    </button>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Form: Data & Settings -->
     <div id="data-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300" id="data-modal-content">
@@ -628,17 +657,6 @@
                         <i class="ph-bold ph-upload-simple"></i> Restore Backup
                     </button>
                     <input type="file" id="input-import" accept=".json, .csv" class="hidden" onchange="dataManager.importData(this)">
-                </div>
-
-                <!-- More Apps -->
-                <div class="pt-4 border-t border-slate-100 space-y-3">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">More Useful Apps</h4>
-                    <a href="https://mastercoder346.github.io/Fair-Share/" target="_blank" class="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-3 rounded-xl transition-colors">
-                        <i class="ph-bold ph-users-three"></i> Fair Share
-                    </a>
-                    <a href="https://mastercoder346.github.io/homeinventory/" target="_blank" class="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-3 rounded-xl transition-colors">
-                        <i class="ph-bold ph-house-line"></i> Home Inventory
-                    </a>
                 </div>
 
                 <!-- Danger Zone -->
@@ -1487,6 +1505,31 @@
 
                 if (hasAlert) badge.classList.remove('hidden');
                 else badge.classList.add('hidden');
+            },
+
+            // --- More Apps Modal (New) ---
+            openAppsModal() {
+                const modal = document.getElementById('apps-modal');
+                const content = document.getElementById('apps-modal-content');
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                void modal.offsetWidth; 
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            },
+
+            closeAppsModal() {
+                const modal = document.getElementById('apps-modal');
+                const content = document.getElementById('apps-modal-content');
+                modal.classList.add('opacity-0');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.remove('flex');
+                    modal.classList.add('hidden');
+                }, 300);
             },
 
             // --- Geo & Standard Modals (Existing) ---
