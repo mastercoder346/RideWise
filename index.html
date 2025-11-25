@@ -630,6 +630,17 @@
                     <input type="file" id="input-import" accept=".json, .csv" class="hidden" onchange="dataManager.importData(this)">
                 </div>
 
+                <!-- More Apps -->
+                <div class="pt-4 border-t border-slate-100 space-y-3">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">More Useful Apps</h4>
+                    <a href="https://mastercoder346.github.io/Fair-Share/" target="_blank" class="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-3 rounded-xl transition-colors">
+                        <i class="ph-bold ph-users-three"></i> Fair Share
+                    </a>
+                    <a href="https://mastercoder346.github.io/homeinventory/" target="_blank" class="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-3 rounded-xl transition-colors">
+                        <i class="ph-bold ph-house-line"></i> Home Inventory
+                    </a>
+                </div>
+
                 <!-- Danger Zone -->
                 <div class="pt-4 border-t border-slate-100 space-y-3">
                     <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider">Danger Zone</h4>
@@ -731,6 +742,11 @@
             },
 
             addVehicle(name) {
+                // Remove "My Car" if it exists and is empty before adding the first real car
+                if (this.state.vehicles.length === 1 && this.state.vehicles[0].name === "My Car" && this.state.vehicles[0].entries.length === 0) {
+                    this.state.vehicles = [];
+                }
+
                 const newId = Date.now();
                 const newVehicle = {
                     id: newId,
@@ -1344,12 +1360,16 @@
 
                 list.innerHTML = '';
                 vehicle.maintenanceLogs.forEach(log => {
+                    // Fix Date: Parse YYYY-MM-DD components to ensure Local Time
+                    const [y, m, d] = log.date.split('-').map(Number);
+                    const localDate = new Date(y, m - 1, d);
+
                     const item = document.createElement('div');
                     item.className = "flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm";
                     item.innerHTML = `
                         <div>
                             <div class="font-semibold text-slate-700">${log.serviceName}</div>
-                            <div class="text-xs text-slate-400">${new Date(log.date).toLocaleDateString()} • ${log.odometer.toLocaleString()} mi</div>
+                            <div class="text-xs text-slate-400">${localDate.toLocaleDateString()} • ${log.odometer.toLocaleString()} mi</div>
                             ${log.notes ? `<div class="text-[10px] text-slate-500 mt-0.5 italic">"${log.notes}"</div>` : ''}
                         </div>
                         <div class="font-bold text-slate-800">$${log.cost.toFixed(2)}</div>
@@ -1605,8 +1625,11 @@
                     document.getElementById('input-missed').checked = false;
                     document.getElementById('preview-total').innerText = "$0.00";
 
+                    document.getElementById('input-odometer').value = "";
                     if(activeCar.entries.length > 0) {
-                        document.getElementById('input-odometer').value = activeCar.entries[0].odometer;
+                        document.getElementById('input-odometer').placeholder = activeCar.entries[0].odometer;
+                    } else {
+                        document.getElementById('input-odometer').placeholder = "e.g. 45020";
                     }
                 }
 
@@ -1721,11 +1744,10 @@
                 const isPartial = document.getElementById('input-partial').checked;
                 const isMissed = document.getElementById('input-missed').checked;
 
-                const activeCar = dataManager.getActiveVehicle();
-
-                if (!idInput && activeCar.entries.length > 0) {
-                    // No enforcement, just allow sorting by app. 
-                    // Warn if significantly LOWER than max? Nah, let user backlog freely.
+                // Validation: Ensure essential numbers are valid
+                if (isNaN(odometer) || isNaN(gallons) || isNaN(price)) {
+                    alert("Please enter valid numbers for Odometer, Gallons, and Price.");
+                    return;
                 }
 
                 const entry = {
@@ -2009,6 +2031,10 @@
                     
                     const stats = this.calcLogStats(index, entries);
 
+                    // Fix Date: Parse YYYY-MM-DD components to ensure Local Time
+                    const [y, m, d] = entry.date.split('-').map(Number);
+                    const localDate = new Date(y, m - 1, d);
+
                     if (entry.isMissed) {
                         mpgDisplay = `<span class="font-bold text-red-500 text-xs bg-red-50 px-2 py-0.5 rounded-full">Missed Prev</span>`;
                         if (index < entries.length - 1) {
@@ -2048,8 +2074,8 @@
                     row.innerHTML = `
                         <div class="flex items-center gap-3">
                             <div class="bg-blue-50 text-blue-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs flex-col leading-none shrink-0">
-                                <span>${new Date(entry.date).getDate()}</span>
-                                <span class="text-[8px] uppercase">${new Date(entry.date).toLocaleDateString(undefined,{month:'short'})}</span>
+                                <span>${localDate.getDate()}</span>
+                                <span class="text-[8px] uppercase">${localDate.toLocaleDateString(undefined,{month:'short'})}</span>
                             </div>
                             <div>
                                 <div class="text-sm font-semibold text-slate-700">$${totalCost.toFixed(2)} ${discountBadge}</div>
