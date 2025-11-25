@@ -1703,15 +1703,14 @@
                 const station = document.getElementById('input-station').value.trim();
                 const isPartial = document.getElementById('input-partial').checked;
 
-                const activeCar = dataManager.getActiveVehicle();
-
-                if (!idInput && activeCar.entries.length > 0) {
-                    const maxOdo = Math.max(...activeCar.entries.map(e => e.odometer));
-                    if(odometer <= maxOdo) {
-                        alert("Odometer must be higher than your last entry (" + maxOdo + ")");
-                        return;
-                    }
+                // Validation: Ensure essential numbers are valid
+                if (isNaN(odometer) || isNaN(gallons) || isNaN(price)) {
+                    alert("Please enter valid numbers for Odometer, Gallons, and Price.");
+                    return;
                 }
+
+                // REMOVED: The check that forced odometer > maxOdo. 
+                // You can now enter ANY odometer reading, and the app will sort it chronologically.
 
                 const entry = {
                     id: idInput ? parseInt(idInput) : Date.now(),
