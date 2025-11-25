@@ -108,7 +108,7 @@
 
             <!-- Right Side: Actions -->
             <div class="flex items-center gap-2 shrink-0">
-                <!-- Maintenance Button (New) -->
+                <!-- Maintenance Button -->
                 <button onclick="uiManager.openServiceModal()" class="text-slate-400 hover:text-orange-500 p-2 transition-colors rounded-lg relative" title="Vehicle Maintenance">
                     <i class="ph-bold ph-wrench text-xl"></i>
                     <span id="service-badge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
@@ -376,12 +376,18 @@
             <form id="fuel-form" class="p-5 md:p-6 space-y-4 md:space-y-5">
                 <input type="hidden" id="input-entry-id">
 
-                <!-- Partial Fill Checkbox -->
-                <div class="flex items-center gap-2">
-                    <label class="relative inline-flex items-center cursor-pointer">
+                <!-- Partial / Missed Toggles -->
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="input-partial" class="sr-only peer">
-                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-400"></div>
-                        <span class="ms-3 text-xs font-medium text-slate-600 uppercase tracking-wide">Partial Tank (Don't calc MPG)</span>
+                        <div class="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-orange-400 relative"></div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Partial Tank</span>
+                    </label>
+                    
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="input-missed" class="sr-only peer">
+                        <div class="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-400 relative"></div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Missed Previous</span>
                     </label>
                 </div>
 
@@ -1007,6 +1013,7 @@
                     totalCost: cols.findIndex(c => c.includes('total cost') || (c.includes('price') && !c.includes('volume'))),
                     station: cols.findIndex(c => c.includes('city') || c.includes('station') || c.includes('brand')),
                     full: cols.findIndex(c => c === 'full' || c === 'partial'),
+                    missed: cols.findIndex(c => c === 'missed' || c.includes('missed')),
                     notes: cols.findIndex(c => c.includes('notes') || c.includes('comment'))
                 };
 
@@ -1024,7 +1031,6 @@
                     if (!line) continue;
 
                     // Robust CSV Line Splitter (Handles quotes with commas inside)
-                    // This regex matches: Quoted fields OR Non-comma sequences
                     const matches = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
                     
                     if (!matches) continue;
@@ -1071,20 +1077,28 @@
                         if (station.endsWith('-')) station = station.slice(0, -1).trim();
 
                         // Partial Logic
-                        // Your file: Full="1" (Full), Full="0" (Partial/Missed)
                         let isPartial = false;
                         if (idxMap.full !== -1) {
                             const fullVal = row[idxMap.full];
-                            // If column is "Full": 0 = Partial
-                            // If column is "Partial": 1/True = Partial
-                            // Assuming your file header is "Full" based on previous context
+                            // File format usually: 1=Full, 0=Partial.
+                            // So if "0" or "false", it IS partial.
                             if (fullVal === '0' || fullVal.toLowerCase() === 'false') {
                                 isPartial = true;
                             }
                         }
 
+                        // Missed Logic (New)
+                        let isMissed = false;
+                        if (idxMap.missed !== -1) {
+                            const missedVal = row[idxMap.missed];
+                            // If "1" or "true", it is missed
+                            if (missedVal === '1' || missedVal.toLowerCase() === 'true') {
+                                isMissed = true;
+                            }
+                        }
+
                         // Validation
-                        if (!isNaN(odoRaw) && !isNaN(galRaw) && odoRaw > 0) {
+                        if (!isNaN(odoRaw) && !isNaN(galRaw)) { // Allow negative/zero odo if user has old cars, app sorts it
                             // Check for duplicate (simple check by odo + date)
                             const isDup = vehicle.entries.some(e => e.odometer === odoRaw && e.date === finalDate);
                             
@@ -1097,7 +1111,8 @@
                                     price: isNaN(priceRaw) ? 0 : priceRaw,
                                     discount: 0,
                                     station: station,
-                                    isPartial: isPartial
+                                    isPartial: isPartial,
+                                    isMissed: isMissed
                                 });
                                 addedCount++;
                             }
@@ -1574,6 +1589,7 @@
                     document.getElementById('input-discount').value = existingEntry.discount.toFixed(2);
                     document.getElementById('input-station').value = existingEntry.station || '';
                     document.getElementById('input-partial').checked = !!existingEntry.isPartial; 
+                    document.getElementById('input-missed').checked = !!existingEntry.isMissed; // Load missed state
                     
                     this.updateModalPreview();
 
@@ -1586,6 +1602,7 @@
                     document.getElementById('input-date').valueAsDate = new Date();
                     document.getElementById('input-discount').value = "0.00";
                     document.getElementById('input-partial').checked = false;
+                    document.getElementById('input-missed').checked = false;
                     document.getElementById('preview-total').innerText = "$0.00";
 
                     if(activeCar.entries.length > 0) {
@@ -1702,15 +1719,14 @@
                 const discount = parseFloat(document.getElementById('input-discount').value) || 0;
                 const station = document.getElementById('input-station').value.trim();
                 const isPartial = document.getElementById('input-partial').checked;
+                const isMissed = document.getElementById('input-missed').checked;
 
-                // Validation: Ensure essential numbers are valid
-                if (isNaN(odometer) || isNaN(gallons) || isNaN(price)) {
-                    alert("Please enter valid numbers for Odometer, Gallons, and Price.");
-                    return;
+                const activeCar = dataManager.getActiveVehicle();
+
+                if (!idInput && activeCar.entries.length > 0) {
+                    // No enforcement, just allow sorting by app. 
+                    // Warn if significantly LOWER than max? Nah, let user backlog freely.
                 }
-
-                // REMOVED: The check that forced odometer > maxOdo. 
-                // You can now enter ANY odometer reading, and the app will sort it chronologically.
 
                 const entry = {
                     id: idInput ? parseInt(idInput) : Date.now(),
@@ -1720,7 +1736,8 @@
                     price,
                     discount,
                     station: station || null,
-                    isPartial
+                    isPartial,
+                    isMissed
                 };
 
                 dataManager.upsertEntry(entry, this.currentGeoCoords);
@@ -1752,10 +1769,18 @@
             calcLogStats(index, entries) {
                 const entry = entries[index];
                 
+                // Can't calculate MPG if this entry is partial (loop not closed)
+                // OR if this entry is marked as "Missed Previous" (gap behind it)
                 if (entry.isPartial) return null; 
+                if (entry.isMissed) return null; 
 
+                // Find previous FULL fill-up
                 let prevFullIndex = -1;
                 for (let i = index + 1; i < entries.length; i++) {
+                    // If we hit a "Missed" entry during scan, the chain is broken
+                    if (entries[i].isMissed) {
+                        break; 
+                    }
                     if (!entries[i].isPartial) {
                         prevFullIndex = i;
                         break;
@@ -1836,6 +1861,7 @@
 
                 if (entries.length < 2) return;
 
+                // Total Distance KPI (Just Odo - Odo)
                 const totalDist = entries[0].odometer - entries[entries.length - 1].odometer;
                 
                 const now = new Date();
@@ -1856,31 +1882,50 @@
                 let bestMpg = 0;
                 let bestRange = 0;
 
+                // Sum for Lifetime Valid MPG Calculation
+                let lifetimeValidDist = 0;
+                let lifetimeValidGallons = 0;
+
                 for(let i = 0; i < entries.length - 1; i++) {
                     const currentEntry = entries[i];
                     const nextEntry = entries[i+1];
+                    // Simple dist between points for table metrics
                     const tripDist = currentEntry.odometer - nextEntry.odometer;
                     const entryDate = new Date(currentEntry.date);
                     
+                    // Calc Stats for this entry using smart logic (validates chains)
                     const stats = this.calcLogStats(i, entries);
                     
                     if (stats) {
                         if (stats.mpg > bestMpg) bestMpg = stats.mpg;
                         if (stats.distance > bestRange) bestRange = stats.distance;
+                        
+                        // Add to lifetime valid sum
+                        lifetimeValidDist += stats.distance;
+                        lifetimeValidGallons += stats.gallons;
                     }
 
-                    if (entryDate.getFullYear() === currentYear) {
-                        ytdDist += tripDist;
-                        const cost = (Math.max(0, currentEntry.price - currentEntry.discount) * currentEntry.gallons);
-                        ytdCost += cost;
-                        ytdFillups++;
-                        ytdGallons += currentEntry.gallons;
+                    // Period Stats: Use simple accumulation for Cost/Count
+                    // For Dist/MPG, ideally use valid chains, but simpler to sum tripDist 
+                    // BUT excluding Missed segments for distance accuracy
+                    
+                    if (currentEntry.isMissed) {
+                        // This gap is invalid distance
+                    } else {
+                        // Valid-ish gap
+                        if (entryDate.getFullYear() === currentYear) {
+                            ytdDist += tripDist;
+                            const cost = (Math.max(0, currentEntry.price - currentEntry.discount) * currentEntry.gallons);
+                            ytdCost += cost;
+                            ytdFillups++;
+                            ytdGallons += currentEntry.gallons; // This is loose for period MPG, ok for approx
 
-                        if (entryDate.getMonth() === currentMonth) {
-                            monthDist += tripDist;
-                            monthCost += cost;
-                            monthFillups++;
-                            monthGallons += currentEntry.gallons;
+                            if (entryDate.getMonth() === currentMonth) {
+                                monthDist += tripDist;
+                                monthCost += cost;
+                                monthFillups++;
+                                monthGallons += currentEntry.gallons;
+                            }
                         }
                     }
                 }
@@ -1899,12 +1944,10 @@
                     stopFreq = totalDays / (entries.length - 1);
                 }
 
-                let totalTripGallons = 0;
-                for(let i=0; i<entries.length-1; i++) {
-                    totalTripGallons += entries[i].gallons;
-                }
+                // Lifetime Avg MPG (Valid Dist / Valid Gal)
+                const avgMpg = lifetimeValidGallons > 0 ? (lifetimeValidDist / lifetimeValidGallons) : 0;
                 
-                const avgMpg = totalTripGallons > 0 ? (totalDist / totalTripGallons) : 0;
+                // Cost per Mile (Total Cost / Total Dist) - keeps simple Approx
                 const costPerMile = totalDist > 0 ? (totalCostAllTime / totalDist) : 0; 
 
                 const monthMpg = monthGallons > 0 ? (monthDist / monthGallons) : 0;
@@ -1966,7 +2009,13 @@
                     
                     const stats = this.calcLogStats(index, entries);
 
-                    if (entry.isPartial) {
+                    if (entry.isMissed) {
+                        mpgDisplay = `<span class="font-bold text-red-500 text-xs bg-red-50 px-2 py-0.5 rounded-full">Missed Prev</span>`;
+                        if (index < entries.length - 1) {
+                            const dist = entry.odometer - entries[index+1].odometer;
+                            milesDisplay = `+${dist} mi`;
+                        }
+                    } else if (entry.isPartial) {
                         mpgDisplay = `<span class="font-bold text-orange-500 text-xs bg-orange-50 px-2 py-0.5 rounded-full">Partial</span>`;
                         if (index < entries.length - 1) {
                             const dist = entry.odometer - entries[index+1].odometer;
