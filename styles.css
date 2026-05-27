@@ -868,6 +868,10 @@ select option {
    NAVIGATION BAR (BOTTOM MOBILE / LEFT DESKTOP)
    ========================================================================== */
 
+.nav-brand-desktop {
+  display: none;
+}
+
 .app-nav {
   position: fixed;
   bottom: 0;
@@ -969,20 +973,28 @@ select option {
     background: rgba(11, 15, 25, 0.65);
   }
 
-  /* Add brand header inside desktop navigation */
-  .app-nav::before {
-    content: 'RideWise';
-    display: block;
+  /* Desktop brand header block containing SVG Gas Pump and text */
+  .nav-brand-desktop {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     width: 100%;
-    font-size: 1.6rem;
+    margin-bottom: 30px;
+    padding-left: 12px;
+  }
+
+  .nav-brand-desktop span {
+    font-size: 1.65rem;
     font-weight: 800;
     letter-spacing: -0.5px;
     background: var(--primary-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 30px;
-    text-align: left;
-    padding-left: 12px;
+  }
+
+  .nav-brand-desktop svg {
+    color: var(--accent-cyan);
+    filter: drop-shadow(0 0 4px rgba(0, 242, 254, 0.4));
   }
 
   .nav-item {
